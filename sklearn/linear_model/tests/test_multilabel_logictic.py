@@ -104,29 +104,13 @@ def test_multilogistic():
     X, y = make_classification(n_samples=n_samples, n_features=n_features,
                                random_state=0)
 
-    # Fit intercept case.
     alpha = 1.
-    slf = LogisticRegression(solver='lbfgs', fit_intercept=False)
-    slf.fit(X, y)
-
     multi_y = np.hstack([y[:,np.newaxis], y[:, np.newaxis]])
     clf = MultiLogisticRegression(fit_intercept=False)
-    #clf.fit(X, multi_y)
     clf.fit(X, multi_y[:,1:])
-    clf._predict_proba_lr(X)
-    import ipdb; ipdb.set_trace()
-
-#def test_logistic_loss_grad_hess_multi_label():
-#    n_samples, n_features = 10, 5
-#    X, y = make_classification(n_samples=n_samples, n_features=n_features,
-#                               random_state=0)
-#
-#    # Fit intercept case.
-#    alpha = 1.
-#    w = np.ones(n_features + 1)
-#    multi_w = np.ones((n_features+1, 2))
-#    multi_y = np.hstack([y[:,np.newaxis], y[:, np.newaxis]])
-#    
-#    grad, hess = _single_logistic_grad_hess(w, X, y, alpha)
-#    multi_grad, multi_hess = _logistic_grad_hess(multi_w, X, multi_y, alpha)
+    pred_y = clf.predict(X)
+    assert_almost_equal(pred_y.ravel(), y.ravel())
+    clf.fit(X, multi_y)
+    pred_y = clf.predict(X)
+    assert_almost_equal(pred_y.ravel(), multi_y.ravel())
 

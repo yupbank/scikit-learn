@@ -35,7 +35,6 @@ from ..externals import six
 from ..metrics import SCORERS
 
 
-# .. some helper functions for logistic_regression_path ..
 def _intercept_dot(w, X, y):
     c = np.zeros(w.shape[1])
     if w.shape[0] == X.shape[1] + 1:
@@ -51,7 +50,6 @@ def _logistic_loss(w, X, y, alpha, sample_weight=None):
 
     if sample_weight is None:
         sample_weight = np.ones((y.shape[0], 1))
-    # Logistic loss is the negative of the log of the logistic function.
     out = -np.sum(sample_weight * log_logistic(yz)) + .5 * alpha * squared_norm(w)
     return out.sum()
 
@@ -121,7 +119,6 @@ def logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
     for i, C in enumerate(Cs):
         if solver == 'lbfgs':
             try:
-                import ipdb; ipdb.set_trace()
                 w0, loss, info = optimize.fmin_l_bfgs_b(
                     func, w0, fprime=None,
                     args=(X, target, 1. / C, sample_weight),
@@ -215,6 +212,7 @@ class MultiLogisticRegression(BaseEstimator, LinearClassifierMixin,
 
         max_squared_sum = None
         classes = np.unique(y)
+        self.classes_ = classes
         if len(classes) == 2:
             classes = classes[1:]
 
@@ -265,5 +263,24 @@ class MultiLogisticRegression(BaseEstimator, LinearClassifierMixin,
     def decision_function(self, X):
         if not hasattr(self, "coef_"):
             raise NotFittedError("Call fit before prediction")
+
         return safe_sparse_dot(X, self.coef_)+self.intercept_
 
+    def predict_proba(self, X):
+        """Probability estimation for OvR logistic regression.
+
+        Positive class probabilities are computed as
+        1. / (1. + np.exp(-self.decision_function(X)));
+        multiclass is handled by normalizing that over all classes.
+        """
+        prob = self.decision_function(X)
+        prob *= -1
+        np.exp(prob, prob)
+        prob += 1
+        np.reciprocal(prob, prob)
+        return prob
+
+    def predict(self, X):
+        scores = self.decision_function(X)
+        indices = (scores>0).astype(np.int)
+        return self.classes_[indices]
